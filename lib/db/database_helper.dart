@@ -196,7 +196,7 @@ class DatabaseHelper {
     return Sqflite.firstIntValue(r) ?? 0;
   }
 
-  // ================= Customers (single query, no N+1) =================
+  // ================= Customers =================
   Future<List<Map<String, dynamic>>> getCustomers({String search = ''}) async {
     final d = await db;
     final today = DateTime.now().toIso8601String().substring(0, 10);
@@ -414,7 +414,7 @@ class DatabaseHelper {
     };
   }
 
-  // ================= Returns (رجيع) =================
+  // ================= Returns =================
   Future<List<Map<String, dynamic>>> getRecentSales({int limit = 50}) async {
     final d = await db;
     return d.query('sales', orderBy: 'created_at DESC', limit: limit);
@@ -425,7 +425,6 @@ class DatabaseHelper {
     return d.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
   }
 
-  /// يعيد الكميات للمخزون ويُسجّل قيد ذمم عكسي (خصم من دين الزبون أو زيادة رصيده).
   Future<void> processReturn({
     required int saleId,
     required List<int> itemIds,
@@ -454,7 +453,6 @@ class DatabaseHelper {
         }
         await txn.delete('sale_items', where: 'id = ?', whereArgs: [itemId]);
       }
-      // تسجيل القيد العكسي في دفتر الزبون إن وُجد زبون مرتبط
       final cid = sale['customer_id'];
       if (cid != null && returnedValue > 0.009) {
         await txn.insert('ledger', {
@@ -466,11 +464,9 @@ class DatabaseHelper {
           'created_at': DateTime.now().toIso8601String(),
         });
       }
-      // تحديث إجمالي الفاتورة المطروح منها المرتجع
       final newTotal = ((sale['total'] as num?)?.toDouble() ?? 0.0) - returnedValue;
       await txn.update('sales', {'total': newTotal < 0 ? 0.0 : newTotal},
           where: 'id = ?', whereArgs: [saleId]);
     });
   }
-
 }

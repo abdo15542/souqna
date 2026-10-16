@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
 import '../db/database_helper.dart';
 import '../services/update_service.dart';
 import 'debts_screen.dart';
 import 'inventory_screen.dart';
 import 'reports_screen.dart';
+import 'returns_screen.dart';
 import 'sale_screen.dart';
 import 'settings_screen.dart';
 
@@ -25,6 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _load();
+    UpdateService.check().then((info) {
+      if (info != null && mounted) {
+        _showUpdateDialog(info);
+      }
+    });
   }
 
   Future<void> _load() async {
@@ -38,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _overdue = overdue;
       _loading = false;
     });
-    UpdateService.maybePrompt(context);
     if (_overdue > 0 && !_warned) {
       _warned = true;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -46,6 +50,32 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.red.shade700,
       ));
     }
+  }
+
+  void _showUpdateDialog(UpdateInfo info) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('نسخة جديدة متوفرة'),
+        content: Text(
+            'صدرت النسخة ${info.latestVersion} (لديك ${APP_VERSION}).\n'
+            'سيتم تنزيلها وفتح شاشة التنصيب. بياناتك ستبقى محفوظة.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('لاحقًا')),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final err = await UpdateService.install(info.apkUrl);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(err == null ? 'جارٍ فتح شاشة التنصيب…' : 'خطأ: $err'),
+              ));
+            },
+            child: const Text('تحديث الآن'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -114,6 +144,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         _actionButton('تقارير', Icons.bar_chart, Colors.teal,
                             () => Navigator.push(context,
                                 MaterialPageRoute(builder: (_) => const ReportsScreen()))),
+                        _actionButton('رجيع', Icons.assignment_return, Colors.red,
+                            () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const ReturnsScreen()))),
                         _actionButton('طابعة', Icons.print, Colors.brown,
                             () => Navigator.push(context,
                                 MaterialPageRoute(builder: (_) => const SettingsScreen()))),

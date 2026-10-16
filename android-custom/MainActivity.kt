@@ -12,12 +12,15 @@ import java.net.URL
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Installer channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "souqna/installer")
             .setMethodCallHandler { call, result ->
                 if (call.method == "install") {
                     val url = call.argument<String>("url")
                     if (url.isNullOrEmpty()) {
-                        result.error("no_url", "missing url", null); return@setMethodCallHandler
+                        result.error("no_url", "missing url", null)
+                        return@setMethodCallHandler
                     }
                     Thread {
                         try {
@@ -45,15 +48,19 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
-
+        
+        // Share channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "souqna/share")
             .setMethodCallHandler { call, result ->
                 if (call.method == "share") {
                     val path = call.argument<String>("path")
                     val name = call.argument<String>("name") ?: "backup.db"
-                    if (path.isNullOrEmpty()) { result.error("no_path", "missing", null); return@setMethodCallHandler }
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this, "$packageName.fileprovider", java.io.File(path))
+                    if (path.isNullOrEmpty()) {
+                        result.error("no_path", "missing", null)
+                        return@setMethodCallHandler
+                    }
+                    val uri = FileProvider.getUriForFile(
+                        this, "$packageName.fileprovider", File(path))
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "application/octet-stream"
                         putExtra(Intent.EXTRA_STREAM, uri)
@@ -62,7 +69,9 @@ class MainActivity : FlutterActivity() {
                     }
                     startActivity(Intent.createChooser(send, "مشاركة النسخة"))
                     result.success(true)
-                } else { result.notImplemented() }
+                } else {
+                    result.notImplemented()
+                }
             }
     }
 }

@@ -48,7 +48,7 @@ class AppGate extends StatefulWidget {
 class _AppGateState extends State<AppGate> with WidgetsBindingObserver {
   bool? _needPin;
 
-@override
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../db/database_helper.dart';
 
 class ReturnsScreen extends StatefulWidget {
@@ -9,39 +8,45 @@ class ReturnsScreen extends StatefulWidget {
 }
 
 class _ReturnsScreenState extends State<ReturnsScreen> {
-  late Future<List<Map<String, dynamic>>> _future;
+  late Future<List<Map<String, dynamic>>> _salesFuture;
 
   @override
   void initState() {
     super.initState();
-    _future = DatabaseHelper.instance.getRecentSales();
+    _loadSales();
+  }
+
+  void _loadSales() {
+    _salesFuture = DatabaseHelper.instance.getRecentSales(limit: 50);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الرجيع / المرتجعات')),
+      appBar: AppBar(title: const Text('الرجيع')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _future,
-        builder: (c, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final sales = snap.data!;
-          if (sales.isEmpty) {
+        future: _salesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('لا توجد فواتير'));
           }
+          final sales = snapshot.data!;
           return ListView.builder(
             itemCount: sales.length,
-            itemBuilder: (_, i) {
-              final s = sales[i];
-              final date = (s['created_at'] as String?)?.substring(0, 10) ?? '';
-              final total = (s['total'] as num?)?.toDouble() ?? 0.0;
+            itemBuilder: (context, index) {
+              final sale = sales[index];
+              final date = (sale['created_at'] as String?)?.substring(0, 10) ?? '';
+              final total = (sale['total'] as num?)?.toDouble() ?? 0.0;
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
                   leading: const Icon(Icons.assignment_return, color: Colors.red),
-                  title: Text(s['invoice_no'] as String? ?? ''),
+                  title: Text(sale['invoice_no'] as String? ?? ''),
                   subtitle: Text('$date • ${total.toStringAsFixed(2)} د.ل'),
-                  onTap: () => _pickItems(s['id'] as int, s['invoice_no'] as String),
+                  onTap: () => _showReturnDialog(context, sale['id'] as int, sale['invoice_no'] as String),
                 ),
               );
             },
@@ -51,101 +56,43 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     );
   }
 
-  Future<void> _pickItems(int saleId, String invNo) async {
+  Future<void> _showReturnDialog(BuildContext context, int saleId, String invoiceNo) async {
     final items = await DatabaseHelper.instance.getSaleItems(saleId);
     if (!mounted) return;
+    
     if (items.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('كل عناصر هذه الفاتورة مُرجَّعة مسبقًا')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('كل العناصر مُرجَّعة مسبقًا'))
+      );
       return;
     }
+
     final selected = <int>{};
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('اختر العناصر المرتجعة — $invNo'),
+        title: Text('اختر عناصر للرجيع - $invoiceNo'),
         content: SizedBox(
           width: double.maxFinite,
-          height: 320,
-          child: ListView(
-            children: items.map((it) {
-              final id = it['id'] as int;
-              final name = it['product_name'] as String? ?? '';
-              final qty = (it['qty'] as num?)?.toDouble() ?? 0.0;
-              final price = (it['price'] as num?)?.toDouble() ?? 0.0;
-              return CheckboxListTile(
-                value: selected.contains(id),
-                onChanged: (v) {
-                  if (v == true) {
-                    selected.add(id);
-                  } else {
-                    selected.remove(id);
-                  }
-                  Navigator.pop(ctx); // أغلق وأعيد فتح لتحديث الحالة ببساطة
-                  _reopenPick(ctx, saleId, invNo, selected);
-                },
-                title: Text(name),
-                subtitle: Text('${qty.toStringAsFixed(0)} × ${price.toStringAsFixed(2)}'),
-              );
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, selected.isNotEmpty),
-            child: const Text('تأكيد الرجيع'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      await DatabaseHelper.instance.processReturn(
-        saleId: saleId,
-        itemIds: selected.toList(),
-        reason: 'رجيع يدوي',
-      );
-      if (!mounted) return;
-      setState(() => _future = DatabaseHelper.instance.getRecentSales());
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تم إرجاع ${selected.length} عنصر لفاتورة $invNo')));
-    }
-  }
-
-  void _reopenPick(BuildContext ctx, int saleId, String invNo, Set<int> sel) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Navigator.canPop(ctx)) Navigator.pop(ctx);
-      _pickItemsReloaded(saleId, invNo, sel);
-    });
-  }
-
-  Future<void> _pickItemsReloaded(int saleId, String invNo, Set<int> preSelected) async {
-    final items = await DatabaseHelper.instance.getSaleItems(saleId);
-    if (!mounted) return;
-    final selected = <int>{...preSelected};
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('اختر العناصر المرتجعة — $invNo'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 320,
+          height: 300,
           child: StatefulBuilder(
-            builder: (ctx, setSt) => ListView(
-              children: items.map((it) {
-                final id = it['id'] as int;
-                final name = it['product_name'] as String? ?? '';
-                final qty = (it['qty'] as num?)?.toDouble() ?? 0.0;
-                final price = (it['price'] as num?)?.toDouble() ?? 0.0;
+            builder: (ctx, setState) => ListView(
+              children: items.map((item) {
+                final id = item['id'] as int;
+                final name = item['product_name'] as String? ?? '';
+                final qty = (item['qty'] as num?)?.toDouble() ?? 0.0;
+                final price = (item['price'] as num?)?.toDouble() ?? 0.0;
                 return CheckboxListTile(
                   value: selected.contains(id),
-                  onChanged: (v) => setSt(() {
-                    if (v == true) {
-                      selected.add(id);
-                    } else {
-                      selected.remove(id);
-                    }
-                  }),
+                  onChanged: (checked) {
+                    setState(() {
+                      if (checked == true) {
+                        selected.add(id);
+                      } else {
+                        selected.remove(id);
+                      }
+                    });
+                  },
                   title: Text(name),
                   subtitle: Text('${qty.toStringAsFixed(0)} × ${price.toStringAsFixed(2)}'),
                 );
@@ -157,21 +104,28 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, selected.isNotEmpty),
-            child: const Text('تأكيد الرجيع'),
+            child: const Text('تأكيد الرجيع')
           ),
         ],
       ),
     );
+
     if (confirmed == true && mounted) {
-      await DatabaseHelper.instance.processReturn(
-        saleId: saleId,
-        itemIds: selected.toList(),
-        reason: 'رجيع يدوي',
-      );
-      if (!mounted) return;
-      setState(() => _future = DatabaseHelper.instance.getRecentSales());
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تم إرجاع ${selected.length} عنصر لفاتورة $invNo')));
+      try {
+        await DatabaseHelper.instance.processReturn(
+          saleId: saleId,
+          itemIds: selected.toList(),
+          reason: 'رجيع يدوي',
+        );
+        _loadSales();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم إرجاع ${selected.length} عنصر'))
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red)
+        );
+      }
     }
   }
 }
