@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../theme/app_theme.dart';
+import '../../widgets/ui_kit.dart';
 import '../db/database_helper.dart';
 import '../services/update_service.dart';
 import 'debts_screen.dart';
@@ -15,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _tabIndex = 0;
   bool _loading = true;
   int _lowStock = 0;
   double _debts = 0;
@@ -26,9 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _load();
     UpdateService.check().then((info) {
-      if (info != null && mounted) {
-        _showUpdateDialog(info);
-      }
+      if (info != null && mounted) _showUpdateDialog(info);
     });
   }
 
@@ -47,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _warned = true;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('تنبيه: $_overdue زبون متأخر عن السداد'),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: AppColors.danger,
       ));
     }
   }
@@ -56,9 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: const Text('نسخة جديدة متوفرة'),
-        content: Text(
-            'صدرت النسخة ${info.latestVersion} (لديك ${APP_VERSION}).\n'
+        content: Text('صدرت النسخة ${info.latestVersion} (لديك $APP_VERSION).\n'
             'سيتم تنزيلها وفتح شاشة التنصيب. بياناتك ستبقى محفوظة.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('لاحقًا')),
@@ -80,14 +82,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return IndexedStack(
+      index: _tabIndex,
+      children: [
+        _dashboard(),
+        SaleScreen(embedded: true),
+        InventoryScreen(embedded: true),
+        DebtsScreen(embedded: true),
+        SettingsScreen(embedded: true),
+      ],
+    );
+  }
+
+  Widget _dashboard() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('سوقنا'),
         actions: [
           IconButton(
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            icon: const Icon(Icons.settings),
+            onPressed: () => setState(() => _tabIndex = 4),
+            icon: const Icon(Icons.settings_outlined),
             tooltip: 'الإعدادات',
           ),
         ],
@@ -96,117 +110,78 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _load,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('لوحة التحكم',
-                              style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 12),
-                          Wrap(spacing: 12, runSpacing: 12, children: [
-                            _statCard('مخزون منخفض', '$_lowStock',
-                                Icons.warning_amber_rounded, Colors.orange),
-                            _statCard('إجمالي الذمم',
-                                '${_debts.toStringAsFixed(2)} د.ل',
-                                Icons.account_balance_wallet, Colors.red),
-                            _statCard('متأخرون', '$_overdue', Icons.alarm,
-                                Colors.purple),
-                          ]),
-                        ],
-                      ),
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                children: [
+                  // شريط الإحصائيات الأفقي
+                  SizedBox(
+                    height: 96,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+                      children: [
+                        StatChip(label: 'مخزون منخفض', value: '$_lowStock', icon: Icons.warning_amber_rounded, color: AppColors.warning),
+                        const SizedBox(width: AppSpacing.sm),
+                        StatChip(label: 'إجمالي الذمم', value: '${_debts.toStringAsFixed(2)} د.ل', icon: Icons.account_balance_wallet_rounded, color: AppColors.danger),
+                        const SizedBox(width: AppSpacing.sm),
+                        StatChip(label: 'متأخرون', value: '$_overdue', icon: Icons.alarm_rounded, color: AppColors.purple),
+                      ],
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 14,
-                        crossAxisSpacing: 14,
-                        childAspectRatio: 1.12,
-                      ),
-                      delegate: SliverChildListDelegate([
-                        _actionButton('بيع', Icons.point_of_sale,
-                            const Color(0xFF0F766E),
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const SaleScreen()))),
-                        _actionButton('مخزون', Icons.inventory_2, Colors.blue,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const InventoryScreen()))),
-                        _actionButton('ذمم', Icons.people, Colors.deepPurple,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const DebtsScreen()))),
-                        _actionButton('تقارير', Icons.bar_chart, Colors.teal,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const ReportsScreen()))),
-                        _actionButton('رجيع', Icons.assignment_return, Colors.red,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const ReturnsScreen()))),
-                        _actionButton('طابعة', Icons.print, Colors.brown,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const SettingsScreen()))),
-                        _actionButton('تحديث', Icons.refresh,
-                            Colors.grey.shade700, _load),
-                      ]),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: Text('الإجراءات السريعة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: AppSpacing.sm + 2,
+                      crossAxisSpacing: AppSpacing.sm + 2,
+                      childAspectRatio: 1.35,
+                      children: [
+                        ActionCard(title: 'بيع جديد', subtitle: 'أضف منتجات للسلة وأنجز الفاتورة', icon: Icons.point_of_sale_rounded, color: AppColors.seed, onTap: () => setState(() => _tabIndex = 1)),
+                        ActionCard(title: 'المخزون', subtitle: 'منتجات وأسعار وكميات', icon: Icons.inventory_2_rounded, color: AppColors.info, onTap: () => setState(() => _tabIndex = 2)),
+                        ActionCard(title: 'الذمم', subtitle: 'زبائن وديون ودفعات', icon: Icons.groups_rounded, color: AppColors.purple, onTap: () => setState(() => _tabIndex = 3)),
+                        ActionCard(title: 'التقارير', subtitle: 'مبيعات وأرباح وأكثر مبيعًا', icon: Icons.insights_rounded, color: AppColors.success, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()))),
+                        ActionCard(title: 'الرجيع', subtitle: 'إرجاع عناصر للفواتير', icon: Icons.assignment_return_rounded, color: AppColors.danger, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReturnsScreen()))),
+                        ActionCard(title: 'الطابعة', subtitle: 'اقتران واختبار ESC/POS', icon: Icons.print_rounded, color: AppColors.brown, onTap: () => setState(() => _tabIndex = 4)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: OutlinedButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('تحديث البيانات'),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     ),
                   ),
                 ],
               ),
       ),
+      bottomNavigationBar: _bottomNav(),
     );
   }
 
-  Widget _statCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(18)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: color),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(value,
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-      ]),
-    );
-  }
-
-  Widget _actionButton(String title, IconData icon, Color color,
-      VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: [color.withOpacity(0.16), color.withOpacity(0.05)],
-            ),
-          ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 44, color: color),
-            const SizedBox(height: 10),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 19, fontWeight: FontWeight.bold)),
-          ]),
-        ),
-      ),
+  Widget _bottomNav() {
+    return NavigationBar(
+      selectedIndex: _tabIndex,
+      onDestinationSelected: (i) => setState(() => _tabIndex = i),
+      indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'الرئيسية'),
+        NavigationDestination(icon: Icon(Icons.shopping_cart_rounded), label: 'بيع'),
+        NavigationDestination(icon: Icon(Icons.inventory_2_rounded), label: 'مخزون'),
+        NavigationDestination(icon: Icon(Icons.groups_rounded), label: 'ذمم'),
+        NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'إعدادات'),
+      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'db/database_helper.dart';
 import 'screens/home_screen.dart';
 import 'screens/pin_screen.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,10 +20,7 @@ class SouqnaApp extends StatelessWidget {
     return MaterialApp(
       title: 'سوقنا',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
-      ),
+      theme: buildSouqnaTheme(),
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [

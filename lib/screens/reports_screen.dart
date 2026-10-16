@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../theme/app_theme.dart';
+import '../../widgets/ui_kit.dart';
 import '../db/database_helper.dart';
 import 'returns_screen.dart';
 
@@ -51,9 +54,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _onRangeChanged(int value) async {
     if (value == 3) {
       final picked = await showDateRangePicker(
-          context: context,
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now().add(const Duration(days: 365)));
+          context: context, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
       if (picked == null) return;
       setState(() {
         _range = value;
@@ -92,12 +93,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: const Text('تصدير CSV (انسخ النص)'),
         content: SizedBox(
           width: double.maxFinite,
           height: 320,
-          child: SelectableText(_csv(),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          child: SelectableText(_csv(), style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('إغلاق'))],
       ),
@@ -115,11 +116,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       appBar: AppBar(
         title: const Text('التقارير'),
         actions: [
-          IconButton(onPressed: _showCsv, icon: const Icon(Icons.table_view), tooltip: 'تصدير CSV'),
+          IconButton(onPressed: _showCsv, icon: const Icon(Icons.table_view_rounded), tooltip: 'تصدير CSV'),
           IconButton(
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ReturnsScreen())),
-            icon: const Icon(Icons.assignment_return),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReturnsScreen())),
+            icon: const Icon(Icons.assignment_return_rounded),
             tooltip: 'الرجيع',
           ),
         ],
@@ -127,7 +127,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(AppSpacing.md),
               children: [
                 SegmentedButton<int>(
                   segments: const [
@@ -139,31 +139,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   selected: {_range},
                   onSelectionChanged: (s) => _onRangeChanged(s.first),
                 ),
-                const SizedBox(height: 14),
-                Wrap(spacing: 12, runSpacing: 12, children: [
-                  _card('المبيعات', '${revenue.toStringAsFixed(2)} د.ل', Icons.attach_money, Colors.teal),
-                  _card('الأرباح', '${profit.toStringAsFixed(2)} د.ل', Icons.trending_up, Colors.green),
-                  _card('الفواتير', '$invoices', Icons.receipt_long, Colors.blue),
-                  _card('الآجل في الفترة', '${credit.toStringAsFixed(2)} د.ل', Icons.credit_score, Colors.red),
+                const SizedBox(height: AppSpacing.md),
+                Wrap(spacing: AppSpacing.sm + 2, runSpacing: AppSpacing.sm + 2, children: [
+                  _metric('المبيعات', '${revenue.toStringAsFixed(2)} د.ل', Icons.attach_money_rounded, AppColors.seed),
+                  _metric('الأرباح', '${profit.toStringAsFixed(2)} د.ل', Icons.trending_up_rounded, AppColors.success),
+                  _metric('الفواتير', '$invoices', Icons.receipt_long_rounded, AppColors.info),
+                  _metric('الآجل في الفترة', '${credit.toStringAsFixed(2)} د.ل', Icons.credit_score_rounded, AppColors.danger),
                 ]),
-                const SizedBox(height: 18),
-                const Text('المنتجات الأكثر مبيعًا',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.lg),
+                const Text('المنتجات الأكثر مبيعًا', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                const SizedBox(height: AppSpacing.sm),
                 if (top.isEmpty)
-                  const Card(
-                      child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Center(child: Text('لا توجد مبيعات في هذه الفترة'))))
+                  SectionCard(title: 'لا توجد مبيعات', children: const [SizedBox(height: 40)])
                 else
-                  ...top.map((p) => Card(
-                        margin: const EdgeInsets.only(bottom: 8),
+                  ...top.map((p) => Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.input),
+                          boxShadow: softShadow(),
+                        ),
                         child: ListTile(
-                          leading: const Icon(Icons.local_mall),
-                          title: Text(p['product_name'] as String),
+                          leading: CircleAvatar(backgroundColor: AppColors.seed.withOpacity(0.12), child: const Icon(Icons.local_mall_rounded, color: AppColors.seed)),
+                          title: Text(p['product_name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text('الكمية: ${(p['qty'] as num).toStringAsFixed(0)}'),
-                          trailing: Text('${(p['revenue'] as num).toStringAsFixed(2)} د.ل',
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                          trailing: Text('${(p['revenue'] as num).toStringAsFixed(2)} د.ل', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.seed)),
                         ),
                       )),
               ],
@@ -171,20 +171,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _card(String title, String value, IconData icon, Color color) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(18)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: color),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(value,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
-      ]),
-    );
+  Widget _metric(String label, String value, IconData icon, Color color) {
+    return StatChip(label: label, value: value, icon: icon, color: color);
   }
 }
