@@ -20,6 +20,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -29,27 +34,26 @@ jobs:
 
       - name: Generate Android scaffold
         run: |
-          rm -rf android
-          flutter create --no-pub --org com.souqna --project-name souqna /tmp/souqna_template
-          cp -R /tmp/souqna_template/android ./android
+          cp pubspec.yaml /tmp/pubspec.bak
+          rm -rf android ios web linux macos windows
+          flutter create --no-pub --org com.souqna --project-name souqna .
+          cp /tmp/pubspec.bak pubspec.yaml
 
-          if [ -d /tmp/souqna_template/test ]; then
-            cp -R /tmp/souqna_template/test ./test
-          fi
-
+      - name: Apply custom manifest
+        run: |
           if [ -f android-custom/AndroidManifest.xml ]; then
             cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: Force minSdk 21
+      - name: Pin SDK and build settings
         run: |
-          if [ -f android/app/build.gradle ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
-          fi
-
-          if [ -f android/app/build.gradle.kts ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+          f=android/app/build.gradle
+          if [ -f "$f" ]; then
+            sed -i 's/compileSdk = .*/compileSdk = 34/' "$f" || true
+            sed -i 's/compileSdkVersion .*/compileSdkVersion 34/' "$f" || true
+            sed -i 's/targetSdk = .*/targetSdk = 34/' "$f" || true
+            sed -i 's/minSdk = .*/minSdk = 21/' "$f" || true
+            sed -i 's/minSdkVersion .*/minSdkVersion 21/' "$f" || true
           fi
 
       - name: Install dependencies
