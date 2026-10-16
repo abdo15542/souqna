@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../db/database_helper.dart';
+import '../services/update_service.dart';
 import 'debts_screen.dart';
 import 'inventory_screen.dart';
 import 'reports_screen.dart';
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _overdue = overdue;
       _loading = false;
     });
+    UpdateService.maybePrompt(context);
     if (_overdue > 0 && !_warned) {
       _warned = true;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

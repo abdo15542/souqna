@@ -1,0 +1,25 @@
+def kpFile = new File(rootProject.projectDir, 'key.properties')
+if (kpFile.exists()) {
+  def kp = new Properties()
+  kpFile.withInputStream { kp.load(it) }
+  android {
+    signingConfigs {
+      release {
+        storeFile file(kp['storeFile'] ?: 'upload-keystore.jks')
+        storePassword kp['storePassword']
+        keyAlias kp['keyAlias']
+        keyPassword kp['keyPassword']
+      }
+    }
+    buildTypes {
+      release {
+        signingConfig signingConfigs.release
+        minifyEnabled false
+        shrinkResources false
+      }
+    }
+  }
+  println "[souqna] release signing configured from key.properties"
+} else {
+  println "[souqna] WARNING: key.properties missing -> UNSIGNED release (must delete old app on update)"
+}
