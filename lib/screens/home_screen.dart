@@ -82,15 +82,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return IndexedStack(
-      index: _tabIndex,
-      children: [
-        _dashboard(),
-        SaleScreen(embedded: true),
-        InventoryScreen(embedded: true),
-        DebtsScreen(embedded: true),
-        SettingsScreen(embedded: true),
-      ],
+    // لا نمرر embedded لأي شاشة؛ كل شاشة تعرض appBar الخاص بها طبيعيًا.
+    // الـ IndexedStack يحافظ على حالة كل تبويب عند التبديل.
+    return Scaffold(
+      body: IndexedStack(
+        index: _tabIndex,
+        children: [
+          _dashboard(),
+          const SaleScreen(),
+          const InventoryScreen(),
+          const DebtsScreen(),
+          const SettingsScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tabIndex,
+        onDestinationSelected: (i) => setState(() => _tabIndex = i),
+        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'الرئيسية'),
+          NavigationDestination(icon: Icon(Icons.shopping_cart_rounded), label: 'بيع'),
+          NavigationDestination(icon: Icon(Icons.inventory_2_rounded), label: 'مخزون'),
+          NavigationDestination(icon: Icon(Icons.groups_rounded), label: 'ذمم'),
+          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'إعدادات'),
+        ],
+      ),
     );
   }
 
@@ -114,7 +130,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                 children: [
-                  // شريط الإحصائيات الأفقي
                   SizedBox(
                     height: 96,
                     child: ListView(
@@ -166,22 +181,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
       ),
-      bottomNavigationBar: _bottomNav(),
-    );
-  }
-
-  Widget _bottomNav() {
-    return NavigationBar(
-      selectedIndex: _tabIndex,
-      onDestinationSelected: (i) => setState(() => _tabIndex = i),
-      indicatorColor: Theme.of(context).colorScheme.primaryContainer,
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'الرئيسية'),
-        NavigationDestination(icon: Icon(Icons.shopping_cart_rounded), label: 'بيع'),
-        NavigationDestination(icon: Icon(Icons.inventory_2_rounded), label: 'مخزون'),
-        NavigationDestination(icon: Icon(Icons.groups_rounded), label: 'ذمم'),
-        NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'إعدادات'),
-      ],
     );
   }
 }
