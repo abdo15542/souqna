@@ -437,7 +437,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             final kind = e['kind'] as String;
                             final due = e['due_date'] as String?;
                             final isOverdue =
-                                amount > 0 && due != null && due <= today;
+                                amount > 0 && due != null && due.compareTo(today) <= 0;
 
                             final created = DateTime.tryParse(
                                   e['created_at'] as String,
