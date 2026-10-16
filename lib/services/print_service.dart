@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:intl/intl.dart';
@@ -107,7 +108,7 @@ class PrintService {
       );
       bytes.addAll(EscPos.feed(3));
       bytes.addAll(EscPos.cut());
-      await _printer.writeBytes(bytes);
+      await _printer.writeBytes(Uint8List.fromList(bytes));
       return null;
     } catch (e) {
       return 'خطأ في الطباعة: $e';
@@ -181,7 +182,7 @@ class PrintService {
       bytes.addAll(EscPos.textLine('شكرًا لتعاملكم معنا', align: 1));
       bytes.addAll(EscPos.feed(3));
       bytes.addAll(EscPos.cut());
-      await _printer.writeBytes(bytes);
+      await _printer.writeBytes(Uint8List.fromList(bytes));
       return null;
     } catch (e) {
       return 'خطأ في طباعة الفاتورة: $e';
