@@ -45,13 +45,29 @@ class AppGate extends StatefulWidget {
   State<AppGate> createState() => _AppGateState();
 }
 
-class _AppGateState extends State<AppGate> {
+class _AppGateState extends State<AppGate> with WidgetsBindingObserver {
   bool? _needPin;
 
-  @override
+@override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _check();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      AuthService.needPin().then((need) {
+        if (need && mounted) setState(() => _needPin = true);
+      });
+    }
   }
 
   Future<void> _check() async {

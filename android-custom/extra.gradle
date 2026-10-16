@@ -23,3 +23,6 @@ if (kpFile.exists()) {
 } else {
   println "[souqna] WARNING: key.properties missing -> UNSIGNED release (must delete old app on update)"
 }
+dependencies {
+  implementation 'androidx.core:core:1.9.0'
+}

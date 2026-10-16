@@ -413,4 +413,64 @@ class DatabaseHelper {
       'top': top,
     };
   }
+
+  // ================= Returns (رجيع) =================
+  Future<List<Map<String, dynamic>>> getRecentSales({int limit = 50}) async {
+    final d = await db;
+    return d.query('sales', orderBy: 'created_at DESC', limit: limit);
+  }
+
+  Future<List<Map<String, dynamic>>> getSaleItems(int saleId) async {
+    final d = await db;
+    return d.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+  }
+
+  /// يعيد الكميات للمخزون ويُسجّل قيد ذمم عكسي (خصم من دين الزبون أو زيادة رصيده).
+  Future<void> processReturn({
+    required int saleId,
+    required List<int> itemIds,
+    required String reason,
+  }) async {
+    if (itemIds.isEmpty) throw Exception('اختر عنصرًا للرجيع');
+    final d = await db;
+    await d.transaction((txn) async {
+      final saleRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [saleId], limit: 1);
+      if (saleRows.isEmpty) throw Exception('الفاتورة غير موجودة');
+      final sale = saleRows.first;
+      double returnedValue = 0.0;
+      for (final itemId in itemIds) {
+        final rows = await txn.query('sale_items',
+            where: 'id = ? AND sale_id = ?', whereArgs: [itemId, saleId], limit: 1);
+        if (rows.isEmpty) continue;
+        final it = rows.first;
+        final qty = (it['qty'] as num?)?.toDouble() ?? 0.0;
+        final total = (it['total'] as num?)?.toDouble() ?? 0.0;
+        final pid = it['product_id'];
+        returnedValue += total;
+        if (pid != null) {
+          await txn.rawUpdate(
+              'UPDATE products SET quantity = quantity + ? WHERE id = ?', [qty, pid]);
+        }
+        await txn.delete('sale_items', where: 'id = ?', whereArgs: [itemId]);
+      }
+      // تسجيل القيد العكسي في دفتر الزبون إن وُجد زبون مرتبط
+      final cid = sale['customer_id'];
+      if (cid != null && returnedValue > 0.009) {
+        await txn.insert('ledger', {
+          'customer_id': cid,
+          'sale_id': saleId,
+          'amount': -returnedValue,
+          'kind': 'رجيع',
+          'note': 'رجيع فاتورة ${sale['invoice_no']} ($reason)',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+      // تحديث إجمالي الفاتورة المطروح منها المرتجع
+      final newTotal = ((sale['total'] as num?)?.toDouble() ?? 0.0) - returnedValue;
+      await txn.update('sales', {'total': newTotal < 0 ? 0.0 : newTotal},
+          where: 'id = ?', whereArgs: [saleId]);
+    });
+  }
+
 }

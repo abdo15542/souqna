@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../db/database_helper.dart';
+import 'share_launcher.dart';
 
 class BackupService {
   static Directory _dir() {
@@ -42,4 +43,13 @@ class BackupService {
     final f = File(p.join(_dir().path, name));
     if (f.existsSync()) f.deleteSync();
   }
+
+  /// يفتح قائمة مشاركة النظام لإرسال ملف النسخة الاحتياطية (واتساب/جيميل/بلوتوث...).
+  static Future<void> shareBackup(String name) async {
+    final path = p.join(_dir().path, name);
+    // نستخدم Intent مباشر عبر platform channel بسيط موثوق بدون حزم:
+    // الأبسط والأضمن offline: ننسخ الملف لمجلد مشترك ثم نطلب المشاركة عبر METHOD_CHANNEL.
+    await ShareLauncher.shareFile(path, name);
+  }
+
 }

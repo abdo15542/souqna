@@ -70,6 +70,10 @@ jobs:
           cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/xml
           cp android-custom/file_paths.xml android/app/src/main/res/xml/file_paths.xml
+          mkdir -p android/app/src/main/kotlin/com/souqna/app
+          cp android-custom/MainActivity.kt android/app/src/main/kotlin/com/souqna/app/MainActivity.kt
+          mkdir -p android/app/src/main/res/xml
+          cp android-custom/file_paths.xml android/app/src/main/res/xml/file_paths.xml
           cp android-custom/extra.gradle android/extra.gradle
           f=android/app/build.gradle
           if ! grep -q "extra.gradle" "$f"; then

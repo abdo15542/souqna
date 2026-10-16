@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../db/database_helper.dart';
+import 'returns_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -116,6 +117,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
         title: const Text('التقارير'),
         actions: [
           IconButton(onPressed: _showCsv, icon: const Icon(Icons.table_view), tooltip: 'تصدير CSV'),
+          IconButton(
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ReturnsScreen())),
+            icon: const Icon(Icons.assignment_return),
+            tooltip: 'الرجيع',
+          ),
         ],
       ),
       body: _loading
