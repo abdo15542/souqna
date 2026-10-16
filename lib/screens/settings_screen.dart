@@ -1,7 +1,7 @@
+import '../services/print_service.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
 
-import '../services/print_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
