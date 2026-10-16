@@ -1,4 +1,5 @@
 import '../services/print_service.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../db/database_helper.dart';
@@ -27,12 +28,12 @@ class _SaleScreenState extends State<SaleScreen>
   double _discount = 0;
   double _paid = 0;
   bool _loading = true;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _searchController.addListener(() => setState(() {}));
     _discountController.addListener(_syncDiscount);
     _paidController.addListener(_syncPaid);
     _loadProducts();
@@ -40,6 +41,7 @@ class _SaleScreenState extends State<SaleScreen>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     _discountController.dispose();
@@ -393,7 +395,10 @@ class _SaleScreenState extends State<SaleScreen>
           padding: const EdgeInsets.all(12),
           child: TextField(
             controller: _searchController,
-            onChanged: (_) => _loadProducts(),
+            onChanged: (_) {
+              _searchDebounce?.cancel();
+              _searchDebounce = Timer(const Duration(milliseconds: 300), _loadProducts);
+            },
             decoration: InputDecoration(
               hintText: 'ابحث بالاسم أو الباركود',
               prefixIcon: const Icon(Icons.search),

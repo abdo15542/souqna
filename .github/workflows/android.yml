@@ -7,9 +7,8 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Release APK
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,13 +43,11 @@ jobs:
         run: |
           if [ -f android-custom/AndroidManifest.xml ]; then
             cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "Custom manifest applied."
           else
-            echo "ERROR: android-custom/AndroidManifest.xml not found"
-            exit 1
+            echo "ERROR: manifest missing"; exit 1
           fi
 
-      - name: Pin SDK and build settings
+      - name: Pin SDK settings
         run: |
           f=android/app/build.gradle
           if [ -f "$f" ]; then
@@ -59,33 +56,29 @@ jobs:
             sed -i 's/targetSdk = .*/targetSdk = 33/' "$f" || true
             sed -i 's/minSdk = .*/minSdk = 21/' "$f" || true
             sed -i 's/minSdkVersion .*/minSdkVersion 21/' "$f" || true
-            echo "----- build.gradle keys -----"
-            grep -nE 'compileSdk|targetSdk|minSdk|namespace|applicationId' "$f" || true
           fi
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Debug APK (with failure extract)
+      - name: Build Release APK (with failure extract)
         run: |
           set +e
           set -o pipefail
-          flutter build apk --debug 2>&1 | tee /tmp/build_out.txt
+          flutter build apk --release 2>&1 | tee /tmp/build_out.txt
           ec=$?
-          echo ""
-          echo "================ FAILURE EXTRACT ================"
+          echo ""; echo "================ FAILURE EXTRACT ================"
           if grep -q "FAILURE: Build failed" /tmp/build_out.txt; then
             grep -n -A 70 "FAILURE: Build failed" /tmp/build_out.txt
           else
-            echo "(no FAILURE marker; showing last 120 lines)"
-            tail -n 120 /tmp/build_out.txt
+            echo "(no FAILURE marker; last 120 lines)"; tail -n 120 /tmp/build_out.txt
           fi
           echo "================================================="
           exit $ec
 
-      - name: Upload Debug APK
+      - name: Upload Release APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: souqna-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: souqna-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
