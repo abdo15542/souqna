@@ -1,0 +1,65 @@
+name: Build Souqna APK Termux Friendly
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  debug-apk:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+          cache: true
+
+      - name: Generate Android scaffold
+        run: |
+          rm -rf android
+          flutter create --no-pub --org com.souqna --project-name souqna /tmp/souqna_template
+          cp -R /tmp/souqna_template/android ./android
+
+          if [ -d /tmp/souqna_template/test ]; then
+            cp -R /tmp/souqna_template/test ./test
+          fi
+
+          if [ -f android-custom/AndroidManifest.xml ]; then
+            cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: Force minSdk 21
+        run: |
+          if [ -f android/app/build.gradle ]; then
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
+          fi
+
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Debug APK
+        run: flutter build apk --debug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: souqna-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
