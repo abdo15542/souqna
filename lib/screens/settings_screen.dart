@@ -446,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Icon(Icons.description_rounded, color: AppColors.slate, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(child: Text(b, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-                  IconButton(isTooltipVisible: false, tooltip: 'مشاركة', onPressed: _busyBackup ? null : () => _share(b), icon: const Icon(Icons.share_rounded, color: AppColors.info, size: 20)),
+                  IconButton(tooltip: 'مشاركة', onPressed: _busyBackup ? null : () => _share(b), icon: const Icon(Icons.share_rounded, color: AppColors.info, size: 20)),
                   IconButton(tooltip: 'استعادة', onPressed: _busyBackup ? null : () => _restore(b), icon: const Icon(Icons.restart_alt_rounded, color: AppColors.warning, size: 20)),
                   IconButton(tooltip: 'حذف', onPressed: _busyBackup ? null : () => _delete(b), icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 20)),
                 ]),
