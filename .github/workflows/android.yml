@@ -19,17 +19,22 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-33 build-tools;33.0.2'
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.16.9'
           channel: stable
           cache: true
+
+      - name: Accept licenses with preinstalled sdkmanager (v12, NOT replaced)
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDKM" ]; then
+            yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+            echo "Licenses accepted via preinstalled sdkmanager."
+          else
+            echo "No preinstalled sdkmanager found; relying on AGP auto-download."
+          fi
 
       - name: Generate Android scaffold
         run: |
@@ -70,6 +75,9 @@ jobs:
           echo ""; echo "================ FAILURE EXTRACT ================"
           if grep -q "FAILURE: Build failed" /tmp/build_out.txt; then
             grep -n -A 70 "FAILURE: Build failed" /tmp/build_out.txt
+          elif grep -q "ZipFile unknown archive" /tmp/build_out.txt; then
+            echo "SDK unzip error detected (should not happen now)."
+            grep -n -B2 -A20 "ZipFile unknown archive" /tmp/build_out.txt
           else
             echo "(no FAILURE marker; last 120 lines)"; tail -n 120 /tmp/build_out.txt
           fi
