@@ -68,6 +68,8 @@ jobs:
       - name: Apply manifest + extra.gradle + pin sdk
         run: |
           cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cp android-custom/file_paths.xml android/app/src/main/res/xml/file_paths.xml
           cp android-custom/extra.gradle android/extra.gradle
           f=android/app/build.gradle
           if ! grep -q "extra.gradle" "$f"; then
