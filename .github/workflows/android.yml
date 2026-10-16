@@ -23,7 +23,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+          packages: 'platform-tools platforms;android-33 build-tools;33.0.2'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -35,34 +35,56 @@ jobs:
       - name: Generate Android scaffold
         run: |
           cp pubspec.yaml /tmp/pubspec.bak
-          rm -rf android ios web linux macos windows
+          rm -rf android ios web linux macos windows test
           flutter create --no-pub --org com.souqna --project-name souqna .
+          rm -rf test
           cp /tmp/pubspec.bak pubspec.yaml
 
       - name: Apply custom manifest
         run: |
           if [ -f android-custom/AndroidManifest.xml ]; then
             cp android-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+            echo "Custom manifest applied."
+          else
+            echo "ERROR: android-custom/AndroidManifest.xml not found"
+            exit 1
           fi
 
       - name: Pin SDK and build settings
         run: |
           f=android/app/build.gradle
           if [ -f "$f" ]; then
-            sed -i 's/compileSdk = .*/compileSdk = 34/' "$f" || true
-            sed -i 's/compileSdkVersion .*/compileSdkVersion 34/' "$f" || true
-            sed -i 's/targetSdk = .*/targetSdk = 34/' "$f" || true
+            sed -i 's/compileSdk = .*/compileSdk = 33/' "$f" || true
+            sed -i 's/compileSdkVersion .*/compileSdkVersion 33/' "$f" || true
+            sed -i 's/targetSdk = .*/targetSdk = 33/' "$f" || true
             sed -i 's/minSdk = .*/minSdk = 21/' "$f" || true
             sed -i 's/minSdkVersion .*/minSdkVersion 21/' "$f" || true
+            echo "----- build.gradle keys -----"
+            grep -nE 'compileSdk|targetSdk|minSdk|namespace|applicationId' "$f" || true
           fi
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Debug APK
-        run: flutter build apk --debug
+      - name: Build Debug APK (with failure extract)
+        run: |
+          set +e
+          set -o pipefail
+          flutter build apk --debug 2>&1 | tee /tmp/build_out.txt
+          ec=$?
+          echo ""
+          echo "================ FAILURE EXTRACT ================"
+          if grep -q "FAILURE: Build failed" /tmp/build_out.txt; then
+            grep -n -A 70 "FAILURE: Build failed" /tmp/build_out.txt
+          else
+            echo "(no FAILURE marker; showing last 120 lines)"
+            tail -n 120 /tmp/build_out.txt
+          fi
+          echo "================================================="
+          exit $ec
 
       - name: Upload Debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: souqna-debug-apk
