@@ -53,19 +53,14 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           if [ -n "$KEY_ALIAS" ]; then
-            cat > android/key.properties <<EOF
-storePassword=${KEYSTORE_PASSWORD}
-keyPassword=${KEY_PASSWORD}
-keyAlias=${KEY_ALIAS}
-storeFile=upload-keystore.jks
-EOF
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
             echo "key.properties written"
           fi
 
       - name: Generate Android scaffold
         run: |
           cp pubspec.yaml /tmp/pubspec.bak
-          rm -rf android/ios web linux macos windows test
+          rm -rf android ios web linux macos windows test
           flutter create --no-pub --org com.souqna --project-name souqna .
           rm -rf test
           cp /tmp/pubspec.bak pubspec.yaml
@@ -116,6 +111,4 @@ EOF
         run: |
           VER=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
           TAG="v${VER}"
-          gh release create "$TAG" build/app/outputs/flutter-apk/app-release.apk \
-            --title "Souqna $TAG" --notes "Signed release $TAG" \
-            || gh release upload "$TAG" build/app/outputs/flutter-apk/app-release.apk --clobber
+          gh release create "$TAG" build/app/outputs/flutter-apk/app-release.apk --title "Souqna $TAG" --notes "Signed release $TAG" || gh release upload "$TAG" build/app/outputs/flutter-apk/app-release.apk --clobber
