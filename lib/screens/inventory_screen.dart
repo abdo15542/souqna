@@ -241,10 +241,10 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
   }
 
   Future<void> _save() async {
-    final sale = double.tryParse(_salePrice.text.trim()) ?? 0;
-    final purchase = double.tryParse(_purchasePrice.text.trim()) ?? 0;
-    final qty = double.tryParse(_quantity.text.trim()) ?? 0;
-    final low = double.tryParse(_lowStock.text.trim()) ?? 5;
+    final double sale = double.tryParse(_salePrice.text.trim()) ?? 0.0;
+    final double purchase = double.tryParse(_purchasePrice.text.trim()) ?? 0.0;
+    final double qty = double.tryParse(_quantity.text.trim()) ?? 0.0;
+    final double low = double.tryParse(_lowStock.text.trim()) ?? 5.0;
 
     final data = {
       'name': _name.text.trim(),

@@ -74,16 +74,16 @@ class _SaleScreenState extends State<SaleScreen>
       _cart.values.fold<double>(0, (sum, item) => sum + item.lineTotal);
 
   double get total {
-    final d = _discount < 0 ? 0 : _discount;
-    final t = subtotal - d;
-    return t < 0 ? 0 : t;
+    final double d = _discount < 0 ? 0.0 : _discount;
+    final double t = subtotal - d;
+    return t < 0 ? 0.0 : t;
   }
 
-  double get change => _paid > total ? _paid - total : 0;
-  double get debt => total > _paid ? total - _paid : 0;
+  double get change => _paid > total ? _paid - total : 0.0;
+  double get debt => total > _paid ? total - _paid : 0.0;
 
   void _addToCart(Map<String, dynamic> product) {
-    final stock = (product['quantity'] as num?)?.toDouble() ?? 0;
+    final double stock = (product['quantity'] as num?)?.toDouble() ?? 0.0;
     if (stock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('الكمية غير متوفرة')),
@@ -247,12 +247,12 @@ class _SaleScreenState extends State<SaleScreen>
     }
 
     final items = _cart.values.toList();
-    final effectiveDiscount = _discount < 0 ? 0 : _discount;
-    final saleSubtotal = subtotal;
-    final saleTotal = total;
-    final salePaid = _paid < 0 ? 0 : _paid;
-    final saleChange = change;
-    final saleDebt = debt;
+    final double effectiveDiscount = _discount < 0 ? 0.0 : _discount;
+    final double saleSubtotal = subtotal;
+    final double saleTotal = total;
+    final double salePaid = _paid < 0 ? 0.0 : _paid;
+    final double saleChange = change;
+    final double saleDebt = debt;
     final customerName = _customer?['name'] as String?;
     final paymentMethod = _paymentMethod;
 
@@ -411,9 +411,10 @@ class _SaleScreenState extends State<SaleScreen>
                   itemCount: _products.length,
                   itemBuilder: (_, index) {
                     final p = _products[index];
-                    final stock = (p['quantity'] as num?)?.toDouble() ?? 0;
-                    final price = (p['sale_price'] as num?)?.toDouble() ?? 0;
-                    final low = stock <= (p['low_stock'] as num?)?.toDouble() || stock <= 0;
+                    final double stock = (p['quantity'] as num?)?.toDouble() ?? 0.0;
+                    final double price = (p['sale_price'] as num?)?.toDouble() ?? 0.0;
+                    final double lowStock = (p['low_stock'] as num?)?.toDouble() ?? 0.0;
+                    final bool low = stock <= lowStock || stock <= 0.0;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),

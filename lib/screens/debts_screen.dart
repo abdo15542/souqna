@@ -453,7 +453,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                 ),
                                 title: Text(kind),
                                 subtitle: Text(
-                                  '${DateFormat('yyyy/MM/dd HH:mm').format(created)}'
+                                  '${DateFormat('yyyy/MM/dd HH:mm', 'en').format(created)}'
                                   '${due != null ? '\nالاستحقاق: $due' : ''}'
                                   '${e['note'] != null ? '\n${e['note']}' : ''}',
                                 ),

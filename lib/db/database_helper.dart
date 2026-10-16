@@ -390,15 +390,15 @@ class DatabaseHelper {
         cost += item.lineCost;
       }
 
-      var effectiveDiscount = discount < 0 ? 0 : discount;
+      double effectiveDiscount = discount < 0 ? 0.0 : discount;
       if (effectiveDiscount > subtotal) {
         effectiveDiscount = subtotal;
       }
 
-      final total = subtotal - effectiveDiscount;
-      final paidAmount = paid < 0 ? 0 : paid;
-      final change = paidAmount > total ? paidAmount - total : 0;
-      final debt = total > paidAmount ? total - paidAmount : 0;
+      final double total = subtotal - effectiveDiscount;
+      final double paidAmount = paid < 0 ? 0.0 : paid;
+      final double change = paidAmount > total ? paidAmount - total : 0.0;
+      final double debt = total > paidAmount ? total - paidAmount : 0.0;
 
       if (debt > 0.009 && customerId == null) {
         throw Exception('اختر زبوناً لتسجيل الدين');

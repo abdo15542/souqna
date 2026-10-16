@@ -9,8 +9,8 @@ class CartItem {
 
   int get id => product['id'] as int;
   String get name => product['name'] as String? ?? 'منتج';
-  double get price => (product['sale_price'] as num?)?.toDouble() ?? 0;
-  double get cost => (product['purchase_price'] as num?)?.toDouble() ?? 0;
+  double get price => (product['sale_price'] as num?)?.toDouble() ?? 0.0;
+  double get cost => (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
 
   double get lineTotal => price * qty;
   double get lineCost => cost * qty;

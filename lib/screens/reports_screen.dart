@@ -74,10 +74,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final revenue = (_report['revenue'] as num?)?.toDouble() ?? 0;
-    final profit = (_report['profit'] as num?)?.toDouble() ?? 0;
+    final double revenue = (_report['revenue'] as num?)?.toDouble() ?? 0.0;
+    final double profit = (_report['profit'] as num?)?.toDouble() ?? 0.0;
     final invoices = (_report['invoices'] as num?)?.toInt() ?? 0;
-    final credit = (_report['credit'] as num?)?.toDouble() ?? 0;
+    final double credit = (_report['credit'] as num?)?.toDouble() ?? 0.0;
     final top = (_report['top'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Scaffold(

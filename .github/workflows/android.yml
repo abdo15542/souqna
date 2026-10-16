@@ -1,4 +1,4 @@
-name: Build Souqna APK Termux Friendly
+name: Build Souqna APK
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  debug-apk:
+  build:
     name: Build Debug APK
     runs-on: ubuntu-latest
 
