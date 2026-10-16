@@ -1,6 +1,5 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
-
 import '../services/auth_service.dart';
 import '../services/backup_service.dart';
 import '../services/print_service.dart';
@@ -362,9 +361,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     TextButton(onPressed: () => _restore(b), child: const Text('استعادة')),
                     IconButton(
-                          onPressed: () => BackupService.shareBackup(b),
-                          icon: const Icon(Icons.share, color: Colors.blue)),
-                      IconButton(
+                        onPressed: () => BackupService.shareBackup(b),
+                        icon: const Icon(Icons.share, color: Colors.blue)),
+                    IconButton(
                         onPressed: () => _delete(b),
                         icon: const Icon(Icons.delete, color: Colors.red)),
                   ]),
