@@ -1,6 +1,9 @@
 package com.souqna.app
 
 import android.content.Intent
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,7 +16,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
-        // Installer channel
+        // === Installer channel ===
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "souqna/installer")
             .setMethodCallHandler { call, result ->
                 if (call.method == "install") {
@@ -32,8 +35,7 @@ class MainActivity : FlutterActivity() {
                             conn.inputStream.use { input ->
                                 file.outputStream().use { out -> input.copyTo(out) }
                             }
-                            val uri = FileProvider.getUriForFile(
-                                this, "$packageName.fileprovider", file)
+                            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
                             startActivity(Intent(Intent.ACTION_VIEW).apply {
                                 setDataAndType(uri, "application/vnd.android.package-archive")
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -49,7 +51,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
         
-        // Share channel
+        // === Share channel ===
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "souqna/share")
             .setMethodCallHandler { call, result ->
                 if (call.method == "share") {
@@ -59,8 +61,7 @@ class MainActivity : FlutterActivity() {
                         result.error("no_path", "missing", null)
                         return@setMethodCallHandler
                     }
-                    val uri = FileProvider.getUriForFile(
-                        this, "$packageName.fileprovider", File(path))
+                    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", File(path))
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "application/octet-stream"
                         putExtra(Intent.EXTRA_STREAM, uri)
@@ -71,6 +72,50 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 } else {
                     result.notImplemented()
+                }
+            }
+        
+        // === Biometric channel ===
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "souqna/biometric")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isAvailable" -> {
+                        val manager = BiometricManager.from(this)
+                        val canAuth = manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                        result.success(canAuth == BiometricManager.BIOMETRIC_SUCCESS)
+                    }
+                    "authenticate" -> {
+                        val message = call.argument<String>("message") ?: "أدخل البصمة لفتح التطبيق"
+                        
+                        val executor = ContextCompat.getMainExecutor(this)
+                        val biometricPrompt = BiometricPrompt(this, executor,
+                            object : BiometricPrompt.AuthenticationCallback() {
+                                override fun onAuthenticationSucceeded(authenticationResult: BiometricPrompt.AuthenticationResult) {
+                                    super.onAuthenticationSucceeded(authenticationResult)
+                                    result.success(true)
+                                }
+                                
+                                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                                    super.onAuthenticationError(errorCode, errString)
+                                    result.error("auth_error", errString.toString(), null)
+                                }
+                                
+                                override fun onAuthenticationFailed() {
+                                    super.onAuthenticationFailed()
+                                    result.success(false)
+                                }
+                            })
+                        
+                        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                            .setTitle("التحقق من الهوية")
+                            .setSubtitle(message)
+                            .setNegativeButtonText("استخدام الرقم السري")
+                            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                            .build()
+                        
+                        biometricPrompt.authenticate(promptInfo)
+                    }
+                    else -> result.notImplemented()
                 }
             }
     }

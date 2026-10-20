@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-/// بطاقة إحصاء صغيرة لعرض رقم دالٍّ (مخزون منخفض / ذمم / متأخرون ...).
 class StatChip extends StatelessWidget {
   final String label;
   final String value;
@@ -17,7 +17,7 @@ class StatChip extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: softShadow(),
-        border: Border.all(color: color.withOpacity(0.12)),
+        border: Border.all(color: color.withOpacity(0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -25,11 +25,11 @@ class StatChip extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm + 2),
             decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: AppSpacing.sm + 2),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600)),
+            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
             Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color)),
           ]),
         ],
@@ -38,7 +38,6 @@ class StatChip extends StatelessWidget {
   }
 }
 
-/// زر إجراء كبير لشبكة الرئيسية — أيقونة ملوّنة + عنوان + وصف.
 class ActionCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -67,13 +66,13 @@ class ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.sm + 4),
                 decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(AppRadius.button)),
-                child: Icon(icon, color: color, size: 26),
+                child: Icon(icon, color: color, size: 28),
               ),
               const Spacer(),
               Text(title, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.xs),
               Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600, height: 1.3)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.3)),
             ],
           ),
         ),
@@ -82,33 +81,76 @@ class ActionCard extends StatelessWidget {
   }
 }
 
-/// حقل بحث موحد مع أيقونة ومحو سريع.
-class SearchField extends StatelessWidget {
-  final TextEditingController controller;
+class SearchField extends StatefulWidget {
   final String hint;
   final ValueChanged<String>? onChanged;
-  const SearchField({super.key, required this.controller, required this.hint, this.onChanged});
+  const SearchField({super.key, required this.hint, this.onChanged});
+
+  @override
+  State<SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<SearchField> {
+  late final TextEditingController _controller;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      widget.onChanged?.call(value);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller,
-      onChanged: onChanged,
+      controller: _controller,
+      onChanged: _onChanged,
       decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: const Icon(Icons.search_rounded),
+        hintText: widget.hint,
+        prefixIcon: const Icon(Icons.search_rounded, size: 24),
         suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
+          valueListenable: _controller,
           builder: (_, v, __) => v.text.isEmpty
               ? const SizedBox.shrink()
-              : IconButton(onPressed: () { controller.clear(); onChanged?.call(''); }, icon: const Icon(Icons.close_rounded)),
+              : IconButton(onPressed: () { _controller.clear(); _onChanged(''); }, icon: const Icon(Icons.close_rounded)),
         ),
       ),
     );
   }
 }
 
-/// بطاقة قسم داخل الشاشات الداخلية (إعدادات/تفاصيل).
+class EmptyState extends StatelessWidget {
+  final String message;
+  final IconData icon;
+  final Color color;
+  const EmptyState({super.key, required this.message, this.icon = Icons.inbox_rounded, this.color = AppColors.slate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(icon, size: 64, color: color.withOpacity(0.3)),
+        const SizedBox(height: AppSpacing.md),
+        Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+      ]),
+    );
+  }
+}
+
 class SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -131,7 +173,7 @@ class SectionCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm),
             child: Row(children: [
               if (accent != null)
-                Container(width: 4, height: 18, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2))),
+                Container(width: 4, height: 22, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2))),
               if (accent != null) const SizedBox(width: AppSpacing.sm),
               Text(title, style: Theme.of(context).textTheme.titleMedium),
             ]),
@@ -139,41 +181,6 @@ class SectionCard extends StatelessWidget {
           const Divider(height: 1),
           Padding(padding: const EdgeInsets.all(AppSpacing.md), child: Column(children: children)),
         ],
-      ),
-    );
-  }
-}
-
-/// صف اختيار فاتورة/عنصر بأسلوب قائمة حديثة.
-class SelectableRow extends StatelessWidget {
-  final bool selected;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  const SelectableRow({super.key, required this.selected, required this.title, required this.subtitle, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.input),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2, horizontal: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: selected ? cs.primaryContainer.withOpacity(0.4) : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.input),
-          border: Border.all(color: selected ? cs.primary : cs.outlineVariant),
-        ),
-        child: Row(children: [
-          Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: selected ? cs.primary : cs.outline, size: 22),
-          const SizedBox(width: AppSpacing.sm + 2),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: Theme.of(context).textTheme.labelLarge),
-            Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600)),
-          ])),
-        ]),
       ),
     );
   }

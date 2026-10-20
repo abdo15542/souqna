@@ -12,6 +12,18 @@ class PinScreen extends StatefulWidget {
 class _PinScreenState extends State<PinScreen> {
   String _entry = '';
   bool _checking = false;
+  bool _bioAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBio();
+  }
+
+  Future<void> _checkBio() async {
+    final available = await AuthService.isBiometricAvailable();
+    if (mounted) setState(() => _bioAvailable = available);
+  }
 
   void _tap(String d) {
     if (_entry.length >= 8) return;
@@ -34,7 +46,18 @@ class _PinScreenState extends State<PinScreen> {
     } else {
       setState(() => _entry = '');
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('الرقم السري غير صحيح')));
+          const SnackBar(content: Text('الرقم السري غير صحيح'), backgroundColor: Colors.red));
+    }
+  }
+
+  Future<void> _useBiometric() async {
+    if (!_bioAvailable || _checking) return;
+    setState(() => _checking = true);
+    final ok = await AuthService.authenticateWithBiometric();
+    if (!mounted) return;
+    setState(() => _checking = false);
+    if (ok) {
+      widget.onUnlocked();
     }
   }
 
@@ -65,34 +88,49 @@ class _PinScreenState extends State<PinScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.lock_outline, size: 56),
-              const SizedBox(height: 16),
-              Text('أدخل الرقم السري',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  8,
-                  (i) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i < _entry.length ? Colors.teal : Colors.grey.shade300,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 72, color: Color(0xFF0F766E)),
+                const SizedBox(height: 24),
+                Text('أدخل الرقم السري',
+                    style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    8,
+                    (i) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i < _entry.length ? const Color(0xFF0F766E) : Colors.grey.shade300,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              _keypad(),
-              const SizedBox(height: 12),
-              TextButton(onPressed: _forgot, child: const Text('نسيت الرقم السري؟')),
-            ],
+                const SizedBox(height: 32),
+                _keypad(),
+                const SizedBox(height: 24),
+                if (_bioAvailable) ...[
+                  ElevatedButton.icon(
+                    onPressed: _checking ? null : _useBiometric,
+                    icon: const Icon(Icons.fingerprint_rounded, size: 28),
+                    label: const Text('استخدم البصمة', style: TextStyle(fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 56),
+                      backgroundColor: const Color(0xFF0F766E),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextButton(onPressed: _forgot, child: const Text('نسيت الرقم السري؟')),
+              ],
+            ),
           ),
         ),
       ),
@@ -110,7 +148,7 @@ class _PinScreenState extends State<PinScreen> {
       children: keys.map((row) => Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: row.map((k) {
-          if (k.isEmpty) return const SizedBox(width: 80, height: 64);
+          if (k.isEmpty) return const SizedBox(width: 88, height: 72);
           if (k == '⌫') {
             return _key(k, onTap: _backspace);
           }
@@ -124,13 +162,13 @@ class _PinScreenState extends State<PinScreen> {
     return Padding(
       padding: const EdgeInsets.all(6),
       child: SizedBox(
-        width: 80,
-        height: 64,
+        width: 88,
+        height: 72,
         child: FilledButton.tonal(
           onPressed: _checking ? null : onTap,
           style: FilledButton.styleFrom(
-            textStyle: const TextStyle(fontSize: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            textStyle: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           child: Text(label),
         ),

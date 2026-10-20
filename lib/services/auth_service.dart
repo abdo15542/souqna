@@ -1,4 +1,5 @@
 import '../db/database_helper.dart';
+import 'biometric_service.dart';
 
 class AuthService {
   static String _hash(String s) {
@@ -40,5 +41,14 @@ class AuthService {
   static Future<void> disablePin() async {
     await DatabaseHelper.instance.setSetting('pin_enabled', '0');
     await DatabaseHelper.instance.setSetting('pin_hash', '');
+  }
+
+  // ================= Biometric =================
+  static Future<bool> isBiometricAvailable() async {
+    return await BiometricService.isAvailable();
+  }
+
+  static Future<bool> authenticateWithBiometric() async {
+    return await BiometricService.authenticate('أدخل البصمة لفتح سوقنا');
   }
 }
